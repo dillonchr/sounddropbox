@@ -1,4 +1,5 @@
 import sys
+import time
 import imaplib
 import getpass
 import email
@@ -9,10 +10,18 @@ import os
 reload(sys)
 sys.setdefaultencoding('utf8')
 
-curr_dir ='.'
+curr_dir='./media'
 
-EMAIL_ACCOUNT=""
-EMAIL_PASS=""
+if 'EMAIL_ACCOUNT' not in os.environ:
+    print "Missing EMAIL_ACCOUNT env var"
+    sys.exit(1)
+
+if 'EMAIL_PASS' not in os.environ:
+    print "Missing EMAIL_PASS env var"
+    sys.exit(1)
+
+EMAIL_ACCOUNT=os.environ['EMAIL_ACCOUNT']
+EMAIL_PASS=os.environ['EMAIL_PASS']
 EMAIL_FOLDER = "INBOX"
 
 def process_mailbox(M):
@@ -72,6 +81,16 @@ def process_mailbox(M):
 
         print '%d attachment(s) fetched' %fcount
         print '-----\n\n'
+    try:
+        print 'Sleeping for 10 min'
+        time.sleep(60 * 10)
+        process_mailbox(M)
+    except KeyboardInterrupt as e:
+        print "Caught keyboard interrupt. Canceling tasks..."
+        M.close()
+        M.logout()
+        print "Done."
+
 
 
 M = imaplib.IMAP4_SSL('imap.gmail.com')
@@ -84,8 +103,6 @@ except imaplib.IMAP4.error:
 
 print data
 
-curr_dir = './'
-
 rv, mailboxes = M.list()
 if rv == 'OK':
     print "Mailboxes located."
@@ -94,9 +111,9 @@ rv, data = M.select(EMAIL_FOLDER)
 
 if rv == 'OK':
     print "Now processing mailbox ...\n"
+    if 'media' not in os.listdir('./'):
+        os.mkdir('media')
     process_mailbox(M)
-    M.close()
 else:
     print "ERROR: Unable to open mailbox ", rv
 
-M.logout()
